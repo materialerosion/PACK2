@@ -139,6 +139,71 @@ src/
 └── utils/                     # Utility functions
 ```
 
+## Editable Parameters
+
+Several constants in the codebase control bottle generation behavior. These are designed to be easily modified without deep code changes.
+
+### Bottle Generation Constraints
+**File:** `src/services/bottleGenerationService.ts` (lines 20–70)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `MIN_HEIGHT_DIAMETER_RATIO` | 1.2 | Minimum allowed height÷diameter ratio. Prevents bottles from being too squat. |
+| `MAX_HEIGHT_DIAMETER_RATIO` | 3.5 | Maximum allowed height÷diameter ratio. Prevents bottles from being too tall. |
+| `MIN_HEIGHT_RATIO` | 0.3 | Minimum body height as a fraction of the template's original body height. |
+| `MAX_HEIGHT_RATIO` | 3.0 | Maximum body height as a fraction of the template's original body height. |
+
+### Standard Bottle Diameters
+**File:** `src/services/bottleGenerationService.ts` — `STANDARD_BOTTLE_DIAMETERS` array
+
+Maps target volume ranges to standard body diameters (mm). The generator picks the appropriate diameter for each bottle's target volume.
+
+| Max Volume (mL) | Diameter (mm) |
+|-----------------|---------------|
+| 30 | 28 |
+| 60 | 33 |
+| 120 | 38 |
+| 200 | 43 |
+| 300 | 48 |
+| 500 | 53 |
+| 750 | 58 |
+| 1000 | 63 |
+| 2000 | 75 |
+
+### Standard Cap/Neck Diameters
+**File:** `src/services/bottleGenerationService.ts` — `STANDARD_CAP_DIAMETERS` array
+
+Maps bottle body diameters to neck diameters and finish specifications. Neck diameter is approximately body diameter − 8mm for flush cap fit.
+
+| Body Diameter (mm) | Neck Diameter (mm) | Neck Finish |
+|--------------------|-------------------|-------------|
+| 28 | 20 | 20-400 |
+| 33 | 25 | 24-400 |
+| 38 | 30 | 28-400 |
+| 43 | 35 | 28-400 |
+| 48 | 40 | 33-400 |
+| 53 | 45 | 33-400 |
+| 58 | 50 | 38-400 |
+| 63 | 55 | 38-400 |
+| 75 | 67 | 45-400 |
+
+### Default Bottle Dimensions (per shape)
+**File:** `src/types/bottle.ts` — `DEFAULT_DIMENSIONS` object
+
+Contains default dimensions for each bottle shape. The Boston Round defaults include:
+- Shoulder curve radius: 4mm
+- Neck height: 5mm
+- Neck diameter: 37mm (body diameter − 8mm)
+- Body color: `#9696FF` (set in `src/services/bottleGenerationService.ts` and `src/store/index.ts`)
+
+### Default Body Colors
+- **Boston Round**: `#9696FF` (light blue, RGB 150/150/255)
+- **All other shapes**: `#FFFFFF` (white)
+
+Set in two places:
+- **Series generator**: `src/services/bottleGenerationService.ts` — `createTemplateFromShape()` method
+- **Single bottle generator**: `src/store/index.ts` — `addBottle()` action
+
 ## Usage Guide
 
 ### Creating a Bottle
@@ -152,20 +217,48 @@ src/
 
 ### Building a Lineup
 
-1. Switch to "Lineup Builder" tab
-2. Create a new lineup or select existing
-3. Add bottles from the library
-4. Choose sorting algorithm
-5. Adjust spacing and alignment
-6. Drag bottles to reorder (in custom mode)
+1. **Generate Bottle Series**: Create a series of bottles simultaneously using intelligent algorithms
+   - **Linear Progression**: Equal volume increments between bottles
+   - **Golden Ratio**: Each bottle is φ (1.618) times the previous volume
+   - **Logarithmic Scale**: Volumes increase logarithmically for optimal coverage
+2. **Configure Parameters**:
+   - Set volume range (default: 65-700 mL)
+   - Choose number of bottles (3-10)
+   - Select base bottle template
+   - Define target fill percentage range (default: 65-85%)
+3. **Batch/Individual Editing**:
+   - Batch edit: Modify multiple bottles simultaneously (materials, colors, cap styles)
+   - Individual edit: Full parameter editing for any bottle in the series
+4. **View Generated Bottles**:
+   - 3D shelf visualization showing relative sizes
+   - Detailed specifications list
+   - Fill range calculations for each bottle
+5. **Fill Range Analysis**: For each bottle, see the mL range for target fill percentages
+   - Minimum fill (65%): Optimal for smaller quantities
+   - Target fill (75%): Recommended fill level
+   - Maximum fill (85%): Maximum recommended capacity
 
 ### Comparing Lineups
 
-1. Switch to "Compare" tab
-2. Select multiple lineups to compare
-3. View side-by-side specifications
-4. Rate each lineup
-5. Add comparison notes
+1. **Select Series**: Choose two bottle series to compare
+2. **Gap Analysis**: Identify coverage gaps in volume ranges
+   - Visual chart showing fill ranges for both series
+   - Highlighted gaps where no bottle can accommodate certain volumes
+   - Overlap indicators showing redundant coverage
+3. **Detailed Comparison Table**:
+   - Side-by-side bottle specifications
+   - Fill range coverage for each bottle
+   - Gap sizes and locations
+4. **Coverage Metrics**:
+   - Series 1 coverage percentage
+   - Series 2 coverage percentage
+   - Combined coverage analysis
+   - Number and severity of gaps
+5. **Recommendations**: AI-generated suggestions for:
+   - Filling major coverage gaps
+   - Optimizing bottle sizes
+   - Reducing excessive overlaps
+   - Improving overall lineup efficiency
 
 ### Exporting
 

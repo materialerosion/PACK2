@@ -27,9 +27,11 @@ export default function Bottle3D({
   const { setActiveBottle } = useStore();
   
   // Generate bottle geometry based on shape
+  // Use JSON-serialized dimensions as dependency to ensure proper change detection
+  const dimensionsKey = JSON.stringify(bottle.dimensions);
   const { bodyGeometry, neckGeometry, capGeometry } = useMemo(() => {
     return generateBottleGeometry(bottle);
-  }, [bottle.shape, bottle.dimensions, bottle.capStyle]);
+  }, [bottle.shape, dimensionsKey, bottle.capStyle]);
   
   // Materials
   const bodyMaterial = useMemo(() => {
@@ -59,42 +61,58 @@ export default function Bottle3D({
     }
   });
   
-  const handleClick = (e: THREE.Event) => {
-    e.stopPropagation();
+  const handleClick = (e: any) => {
+    e.stopPropagation?.();
     setActiveBottle(bottle.id);
   };
   
   const dims = bottle.dimensions;
   
+  // Calculate body height used in geometry (body minus neck for shapes that include shoulder)
+  const bodyOnlyHeight = dims.bodyHeight - dims.neckHeight;
+  
+  // Cap dimensions for positioning
+  const capHeight = dims.neckDiameter * 0.5;
+  // Adjust cap height based on style
+  let effectiveCapHeight = capHeight;
+  switch (bottle.capStyle) {
+    case 'child-resistant': effectiveCapHeight = capHeight * 1.2; break;
+    case 'flip-top': effectiveCapHeight = capHeight * 0.8; break;
+    case 'dropper': effectiveCapHeight = capHeight * 2.5; break;
+    case 'pump': effectiveCapHeight = capHeight * 2; break;
+    case 'spray': effectiveCapHeight = capHeight * 1.8; break;
+    default: effectiveCapHeight = capHeight; break;
+  }
+  
   return (
-    <group 
-      ref={meshRef} 
+    <group
+      ref={meshRef}
       position={position}
       onClick={handleClick}
     >
-      {/* Body */}
-      <mesh 
-        geometry={bodyGeometry} 
+      {/* Body - positioned so bottom sits at y=0 */}
+      <mesh
+        geometry={bodyGeometry}
         material={bodyMaterial}
         castShadow
         receiveShadow
-        position={[0, dims.bodyHeight / 2, 0]}
+        position={[0, 0, 0]}
       />
       
-      {/* Neck */}
-      <mesh 
-        geometry={neckGeometry} 
+      {/* Neck - sits on top of body */}
+      <mesh
+        geometry={neckGeometry}
         material={bodyMaterial}
         castShadow
-        position={[0, dims.bodyHeight, 0]}
+        position={[0, bodyOnlyHeight, 0]}
       />
       
-      {/* Cap */}
-      <mesh 
-        geometry={capGeometry} 
+      {/* Cap - sits on top of neck */}
+      <mesh
+        geometry={capGeometry}
         material={capMaterial}
         castShadow
-        position={[0, dims.bodyHeight + dims.neckHeight, 0]}
+        position={[0, bodyOnlyHeight + dims.neckHeight + effectiveCapHeight / 2, 0]}
       />
       
       {/* Selection ring */}
@@ -109,9 +127,9 @@ export default function Bottle3D({
       {bottle.labelZones.map((zone, index) => (
         <mesh
           key={zone.id}
-          position={[0, dims.bodyHeight - zone.topOffset - zone.height / 2, 0]}
+          position={[0, bodyOnlyHeight - zone.topOffset - zone.height / 2, 0]}
         >
-          <cylinderGeometry 
+          <cylinderGeometry
             args={[
               dims.diameter / 2 + 0.5,
               dims.diameter / 2 + 0.5,
@@ -121,11 +139,11 @@ export default function Bottle3D({
               true,
               0,
               (zone.wrapAngle / 360) * Math.PI * 2
-            ]} 
+            ]}
           />
-          <meshBasicMaterial 
-            color={zone.color || '#e5e7eb'} 
-            transparent 
+          <meshBasicMaterial
+            color={zone.color || '#e5e7eb'}
+            transparent
             opacity={0.3}
             side={THREE.DoubleSide}
           />
@@ -151,10 +169,12 @@ export default function Bottle3D({
 }
 
 /**
- * Generate bottle geometry based on shape type
+ * Generate bottle geometry based on shape type.
+ * All body geometries are created with their base at y=0.
  */
 function generateBottleGeometry(bottle: Bottle) {
   const dims = bottle.dimensions;
+  const bodyOnlyHeight = dims.bodyHeight - dims.neckHeight;
   
   let bodyGeometry: THREE.BufferGeometry;
   let neckGeometry: THREE.BufferGeometry;
@@ -162,16 +182,20 @@ function generateBottleGeometry(bottle: Bottle) {
   
   switch (bottle.shape) {
     case 'boston-round':
+      // LatheGeometry already starts at y=0
       bodyGeometry = createBostonRoundBody(dims);
       break;
-    case 'cylinder':
+    case 'cylinder': {
+      // CylinderGeometry is centered at origin; translate so bottom is at y=0
       bodyGeometry = new THREE.CylinderGeometry(
         dims.diameter / 2,
         dims.diameter / 2,
-        dims.bodyHeight - dims.neckHeight,
+        bodyOnlyHeight,
         32
       );
+      bodyGeometry.translate(0, bodyOnlyHeight / 2, 0);
       break;
+    }
     case 'oval':
       bodyGeometry = createOvalBody(dims);
       break;
@@ -180,18 +204,22 @@ function generateBottleGeometry(bottle: Bottle) {
       break;
     case 'packer':
     case 'wide-mouth':
+      // LatheGeometry already starts at y=0
       bodyGeometry = createPackerBody(dims);
       break;
-    default:
+    default: {
       bodyGeometry = new THREE.CylinderGeometry(
         dims.diameter / 2,
         dims.diameter / 2,
-        dims.bodyHeight - dims.neckHeight,
+        bodyOnlyHeight,
         32
       );
+      bodyGeometry.translate(0, bodyOnlyHeight / 2, 0);
+      break;
+    }
   }
   
-  // Neck geometry (common for all shapes)
+  // Neck geometry (common for all shapes) — bottom at y=0, translated up in JSX
   neckGeometry = new THREE.CylinderGeometry(
     dims.neckDiameter / 2,
     dims.neckDiameter / 2,
@@ -242,13 +270,16 @@ function createBostonRoundBody(dims: Bottle['dimensions']): THREE.BufferGeometry
 }
 
 /**
- * Create oval bottle body
+ * Create oval bottle body.
+ * Base sits at y=0, top at y=bodyOnlyHeight.
  */
 function createOvalBody(dims: Bottle['dimensions']): THREE.BufferGeometry {
   const widthRatio = dims.widthRatio || 0.6;
   const a = dims.diameter / 2;
   const b = a * widthRatio;
   const height = dims.bodyHeight - dims.neckHeight;
+  const bevelThickness = Math.min(5, height * 0.05);
+  const bevelSize = Math.min(5, a * 0.1);
   
   // Create elliptical cylinder using extrusion
   const shape = new THREE.Shape();
@@ -268,26 +299,31 @@ function createOvalBody(dims: Bottle['dimensions']): THREE.BufferGeometry {
   const extrudeSettings = {
     depth: height,
     bevelEnabled: true,
-    bevelThickness: 5,
-    bevelSize: 5,
+    bevelThickness,
+    bevelSize,
     bevelSegments: 8,
   };
   
   const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
   geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, height / 2, 0);
+  // After rotation, geometry spans y from -bevelThickness to height+bevelThickness.
+  // Shift up so the base sits at y=0.
+  geometry.translate(0, bevelThickness, 0);
   
   return geometry;
 }
 
 /**
- * Create modern pharmaceutical bottle body (rounded rectangle)
+ * Create modern pharmaceutical bottle body (rounded rectangle).
+ * Base sits at y=0, top at y=bodyOnlyHeight.
  */
 function createModernPharmBody(dims: Bottle['dimensions']): THREE.BufferGeometry {
   const width = dims.diameter;
   const depth = width * (dims.widthRatio || 0.5);
   const height = dims.bodyHeight - dims.neckHeight;
   const radius = Math.min(dims.shoulderCurveRadius, width / 4, depth / 4);
+  const bevelThickness = Math.min(3, height * 0.03);
+  const bevelSize = Math.min(3, width * 0.05);
   
   // Create rounded rectangle shape
   const shape = new THREE.Shape();
@@ -307,14 +343,16 @@ function createModernPharmBody(dims: Bottle['dimensions']): THREE.BufferGeometry
   const extrudeSettings = {
     depth: height,
     bevelEnabled: true,
-    bevelThickness: 3,
-    bevelSize: 3,
+    bevelThickness,
+    bevelSize,
     bevelSegments: 4,
   };
   
   const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
   geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, height / 2, 0);
+  // After rotation, geometry spans y from -bevelThickness to height+bevelThickness.
+  // Shift up so the base sits at y=0.
+  geometry.translate(0, bevelThickness, 0);
   
   return geometry;
 }

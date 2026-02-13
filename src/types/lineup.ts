@@ -57,14 +57,6 @@ export interface Lineup {
   category: string;
 }
 
-export interface LineupComparison {
-  id: string;
-  name: string;
-  lineupIds: string[];
-  notes: string;
-  createdAt: Date;
-}
-
 // Lineup with resolved bottles (for display)
 export interface ResolvedLineup extends Lineup {
   bottles: Bottle[];

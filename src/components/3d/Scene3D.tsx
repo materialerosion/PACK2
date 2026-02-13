@@ -3,18 +3,26 @@
  * Main Three.js scene using react-three-fiber
  */
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, PerspectiveCamera } from '@react-three/drei';
-import { useStore } from '@/store';
+import { useStore, useActiveSeries } from '@/store';
 import Bottle3D from './Bottle3D';
 import Shelf3D from './Shelf3D';
 
 export default function Scene3D() {
   const { ui, bottles, activeBottleId, lineups, activeLineupId, getBottlesForLineup } = useStore();
+  const activeSeries = useActiveSeries();
+  
+  // Determine if we're showing a series lineup
+  const isSeriesView = ui.activeTab === 'lineup' && activeSeries && activeSeries.bottles.length > 0;
   
   // Get bottles to display based on active tab
   const displayBottles = React.useMemo(() => {
+    // Series view: show all bottles from the active series side by side
+    if (isSeriesView) {
+      return activeSeries!.bottles;
+    }
     if (ui.activeTab === 'lineup' && activeLineupId) {
       return getBottlesForLineup(activeLineupId);
     }
@@ -23,15 +31,43 @@ export default function Scene3D() {
       return [bottles[activeBottleId]];
     }
     return Object.values(bottles).slice(0, 10); // Limit for performance
-  }, [ui.activeTab, activeLineupId, activeBottleId, bottles, getBottlesForLineup]);
+  }, [ui.activeTab, activeLineupId, activeBottleId, bottles, getBottlesForLineup, isSeriesView, activeSeries]);
   
   const activeLineup = activeLineupId ? lineups[activeLineupId] : null;
+  
+  // Calculate shelf dimensions for series view
+  const seriesShelfWidth = React.useMemo(() => {
+    if (!isSeriesView) return 0;
+    const seriesBottles = activeSeries!.bottles;
+    // Calculate total width needed: sum of diameters + spacing
+    const totalDiameterWidth = seriesBottles.reduce((sum, b) => sum + b.dimensions.diameter, 0);
+    const spacing = (seriesBottles.length - 1) * 30; // 30mm spacing between bottles
+    return Math.max(totalDiameterWidth + spacing + 80, 400); // min 400mm shelf
+  }, [isSeriesView, activeSeries]);
+  
+  // Calculate camera position based on view
+  const cameraPosition = React.useMemo<[number, number, number]>(() => {
+    if (isSeriesView) {
+      const maxHeight = Math.max(...activeSeries!.bottles.map(b => b.dimensions.height));
+      const distance = Math.max(seriesShelfWidth * 0.8, 300);
+      return [0, maxHeight * 0.8, distance];
+    }
+    return [0, 150, 300];
+  }, [isSeriesView, activeSeries, seriesShelfWidth]);
+  
+  const cameraTarget = React.useMemo<[number, number, number]>(() => {
+    if (isSeriesView) {
+      const maxHeight = Math.max(...activeSeries!.bottles.map(b => b.dimensions.height));
+      return [0, maxHeight * 0.4, 0];
+    }
+    return [0, 50, 0];
+  }, [isSeriesView, activeSeries]);
   
   return (
     <div className="w-full h-full three-canvas">
       <Canvas shadows>
         {/* Camera */}
-        <PerspectiveCamera makeDefault position={[0, 150, 300]} fov={50} />
+        <PerspectiveCamera makeDefault position={cameraPosition} fov={50} />
         
         {/* Controls */}
         <OrbitControls 
@@ -40,7 +76,7 @@ export default function Scene3D() {
           enableRotate={true}
           minDistance={100}
           maxDistance={1000}
-          target={[0, 50, 0]}
+          target={cameraTarget}
         />
         
         {/* Lighting */}
@@ -73,11 +109,20 @@ export default function Scene3D() {
           />
         )}
         
-        {/* Shelf (in lineup mode) */}
-        {ui.activeTab === 'lineup' && activeLineup && (
+        {/* Shelf (in lineup mode with legacy lineup) */}
+        {ui.activeTab === 'lineup' && activeLineup && !isSeriesView && (
           <Shelf3D 
             width={activeLineup.shelfWidth}
             depth={activeLineup.shelfDepth}
+            height={20}
+          />
+        )}
+        
+        {/* Shelf for series view */}
+        {isSeriesView && (
+          <Shelf3D 
+            width={seriesShelfWidth}
+            depth={200}
             height={20}
           />
         )}
@@ -87,7 +132,18 @@ export default function Scene3D() {
           // Calculate position
           let position: [number, number, number] = [0, 0, 0];
           
-          if (ui.activeTab === 'lineup' && activeLineup) {
+          if (isSeriesView) {
+            // Series view: arrange bottles side by side on the shelf, evenly spaced
+            const count = displayBottles.length;
+            const totalWidth = seriesShelfWidth - 80; // Leave margin on edges
+            const spacing = count > 1 ? totalWidth / (count - 1) : 0;
+            const startX = count > 1 ? -totalWidth / 2 : 0;
+            position = [
+              startX + index * spacing,
+              20, // On top of shelf
+              0
+            ];
+          } else if (ui.activeTab === 'lineup' && activeLineup) {
             const lineupPosition = activeLineup.positions.find(p => p.bottleId === bottle.id);
             if (lineupPosition) {
               position = [

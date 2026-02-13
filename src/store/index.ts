@@ -7,15 +7,13 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  Bottle, 
-  BottleShape, 
-  BottleDimensions, 
-  CapStyle,
-  Lineup, 
-  LineupPosition, 
+import {
+  Bottle,
+  BottleShape,
+  BottleDimensions,
+  Lineup,
+  LineupPosition,
   LineupSettings,
-  LineupComparison,
   UIState,
   AppSettings,
   AppTab,
@@ -23,9 +21,13 @@ import {
   DEFAULT_DIMENSIONS,
   DEFAULT_LINEUP_SETTINGS,
   DEFAULT_SHELF_DIMENSIONS,
-  OTCCategory
+  BottleSeries,
+  SeriesComparison,
+  GenerationConfig,
 } from '@/types';
 import { VolumeCalculator } from '@/services/volumeCalculator';
+import { BottleGenerationService } from '@/services/bottleGenerationService';
+import { ComparisonService } from '@/services/comparisonService';
 
 // Store state interface
 interface AppState {
@@ -37,9 +39,13 @@ interface AppState {
   lineups: Record<string, Lineup>;
   activeLineupId: string | null;
   
-  // Comparisons
-  comparisons: Record<string, LineupComparison>;
-  activeComparisonId: string | null;
+  // Bottle Series
+  bottleSeries: Record<string, BottleSeries>;
+  activeSeriesId: string | null;
+  
+  // Series Comparisons (new)
+  seriesComparisons: Record<string, SeriesComparison>;
+  activeSeriesComparisonId: string | null;
   
   // UI State
   ui: UIState;
@@ -68,12 +74,6 @@ interface AppActions {
   updateLineupSettings: (lineupId: string, settings: Partial<LineupSettings>) => void;
   setActiveLineup: (id: string | null) => void;
   
-  // Comparison actions
-  createComparison: (name: string, lineupIds: string[]) => string;
-  updateComparison: (id: string, updates: Partial<LineupComparison>) => void;
-  deleteComparison: (id: string) => void;
-  setActiveComparison: (id: string | null) => void;
-  
   // UI actions
   toggleSidebar: () => void;
   setActiveTab: (tab: AppTab) => void;
@@ -87,6 +87,21 @@ interface AppActions {
   
   // Settings actions
   updateSettings: (updates: Partial<AppSettings>) => void;
+  
+  // Bottle Series actions
+  createBottleSeries: (name: string, config: GenerationConfig) => string;
+  updateBottleSeries: (id: string, updates: Partial<BottleSeries>) => void;
+  deleteBottleSeries: (id: string) => void;
+  setActiveSeries: (id: string | null) => void;
+  updateBottleInSeries: (seriesId: string, bottleIndex: number, updates: Partial<Bottle>) => void;
+  batchUpdateBottlesInSeries: (seriesId: string, bottleIndices: number[], updates: Partial<Bottle>) => void;
+  regenerateSeries: (seriesId: string, config: GenerationConfig) => void;
+  
+  // Series Comparison actions
+  createSeriesComparison: (series1Id: string, series2Id: string) => string | null;
+  updateSeriesComparison: (id: string, updates: Partial<SeriesComparison>) => void;
+  deleteSeriesComparison: (id: string) => void;
+  setActiveSeriesComparison: (id: string | null) => void;
   
   // Utility actions
   getBottlesForLineup: (lineupId: string) => Bottle[];
@@ -102,8 +117,10 @@ const initialState: AppState = {
   activeBottleId: null,
   lineups: {},
   activeLineupId: null,
-  comparisons: {},
-  activeComparisonId: null,
+  bottleSeries: {},
+  activeSeriesId: null,
+  seriesComparisons: {},
+  activeSeriesComparisonId: null,
   ui: {
     sidebarOpen: true,
     activeTab: 'generator',
@@ -143,6 +160,9 @@ export const useStore = create<Store>()(
           ...bottleData.dimensions,
         } as BottleDimensions;
         
+        // Default body color: light blue for boston-round, white for others
+        const defaultBodyColor = shape === 'boston-round' ? '#9696FF' : '#FFFFFF';
+
         const bottle: Bottle = {
           id,
           name: bottleData.name || `Bottle ${Object.keys(get().bottles).length + 1}`,
@@ -150,7 +170,7 @@ export const useStore = create<Store>()(
           dimensions,
           capStyle: bottleData.capStyle || 'screw-cap',
           capColor: bottleData.capColor || '#FFFFFF',
-          bodyColor: bottleData.bodyColor || '#FFFFFF',
+          bodyColor: bottleData.bodyColor || defaultBodyColor,
           material: bottleData.material || 'HDPE',
           opacity: bottleData.opacity ?? 1,
           labelZones: bottleData.labelZones || [],
@@ -287,11 +307,6 @@ export const useStore = create<Store>()(
         set((state) => {
           delete state.lineups[id];
           
-          // Remove from comparisons
-          Object.values(state.comparisons).forEach(comparison => {
-            comparison.lineupIds = comparison.lineupIds.filter(lid => lid !== id);
-          });
-          
           if (state.activeLineupId === id) {
             state.activeLineupId = null;
           }
@@ -357,49 +372,6 @@ export const useStore = create<Store>()(
       setActiveLineup: (id) => {
         set((state) => {
           state.activeLineupId = id;
-        });
-      },
-      
-      // Comparison actions
-      createComparison: (name, lineupIds) => {
-        const id = uuidv4();
-        
-        const comparison: LineupComparison = {
-          id,
-          name,
-          lineupIds,
-          notes: '',
-          createdAt: new Date(),
-        };
-        
-        set((state) => {
-          state.comparisons[id] = comparison;
-          state.activeComparisonId = id;
-        });
-        
-        return id;
-      },
-      
-      updateComparison: (id, updates) => {
-        set((state) => {
-          if (state.comparisons[id]) {
-            Object.assign(state.comparisons[id], updates);
-          }
-        });
-      },
-      
-      deleteComparison: (id) => {
-        set((state) => {
-          delete state.comparisons[id];
-          if (state.activeComparisonId === id) {
-            state.activeComparisonId = null;
-          }
-        });
-      },
-      
-      setActiveComparison: (id) => {
-        set((state) => {
-          state.activeComparisonId = id;
         });
       },
       
@@ -474,6 +446,156 @@ export const useStore = create<Store>()(
         });
       },
       
+      // Bottle Series actions
+      createBottleSeries: (name, config) => {
+        const id = uuidv4();
+        const now = new Date();
+        
+        const bottles = BottleGenerationService.generateSeries(config, get().bottles);
+        
+        const series: BottleSeries = {
+          id,
+          name,
+          description: '',
+          config,
+          bottles,
+          createdAt: now,
+          updatedAt: now,
+          category: '',
+        };
+        
+        set((state) => {
+          state.bottleSeries[id] = series;
+          state.activeSeriesId = id;
+        });
+        
+        return id;
+      },
+      
+      updateBottleSeries: (id, updates) => {
+        set((state) => {
+          if (state.bottleSeries[id]) {
+            Object.assign(state.bottleSeries[id], updates);
+            state.bottleSeries[id].updatedAt = new Date();
+          }
+        });
+      },
+      
+      deleteBottleSeries: (id) => {
+        set((state) => {
+          delete state.bottleSeries[id];
+          
+          // Remove related comparisons
+          Object.keys(state.seriesComparisons).forEach(compId => {
+            const comp = state.seriesComparisons[compId];
+            if (comp.series1Id === id || comp.series2Id === id) {
+              delete state.seriesComparisons[compId];
+            }
+          });
+          
+          if (state.activeSeriesId === id) {
+            state.activeSeriesId = null;
+          }
+        });
+      },
+      
+      setActiveSeries: (id) => {
+        set((state) => {
+          state.activeSeriesId = id;
+        });
+      },
+      
+      updateBottleInSeries: (seriesId, bottleIndex, updates) => {
+        set((state) => {
+          const series = state.bottleSeries[seriesId];
+          if (series && series.bottles[bottleIndex]) {
+            Object.assign(series.bottles[bottleIndex], updates);
+            series.bottles[bottleIndex].updatedAt = new Date();
+            
+            // Recalculate volume if dimensions changed
+            if (updates.dimensions || updates.shape) {
+              series.bottles[bottleIndex].volume = VolumeCalculator.calculate(series.bottles[bottleIndex]);
+              series.bottles[bottleIndex].surfaceArea = VolumeCalculator.calculateSurfaceArea(series.bottles[bottleIndex]);
+            }
+            
+            series.updatedAt = new Date();
+          }
+        });
+      },
+      
+      batchUpdateBottlesInSeries: (seriesId, bottleIndices, updates) => {
+        set((state) => {
+          const series = state.bottleSeries[seriesId];
+          if (series) {
+            for (const index of bottleIndices) {
+              if (series.bottles[index]) {
+                Object.assign(series.bottles[index], updates);
+                series.bottles[index].updatedAt = new Date();
+                
+                if (updates.dimensions || updates.shape) {
+                  series.bottles[index].volume = VolumeCalculator.calculate(series.bottles[index]);
+                  series.bottles[index].surfaceArea = VolumeCalculator.calculateSurfaceArea(series.bottles[index]);
+                }
+              }
+            }
+            series.updatedAt = new Date();
+          }
+        });
+      },
+      
+      regenerateSeries: (seriesId, config) => {
+        set((state) => {
+          const series = state.bottleSeries[seriesId];
+          if (series) {
+            const bottles = BottleGenerationService.generateSeries(config, get().bottles);
+            series.config = config;
+            series.bottles = bottles;
+            series.updatedAt = new Date();
+          }
+        });
+      },
+      
+      // Series Comparison actions
+      createSeriesComparison: (series1Id, series2Id) => {
+        const state = get();
+        const series1 = state.bottleSeries[series1Id];
+        const series2 = state.bottleSeries[series2Id];
+        
+        if (!series1 || !series2) return null;
+        
+        const comparison = ComparisonService.compareSeries(series1, series2);
+        
+        set((s) => {
+          s.seriesComparisons[comparison.id] = comparison;
+          s.activeSeriesComparisonId = comparison.id;
+        });
+        
+        return comparison.id;
+      },
+      
+      updateSeriesComparison: (id, updates) => {
+        set((state) => {
+          if (state.seriesComparisons[id]) {
+            Object.assign(state.seriesComparisons[id], updates);
+          }
+        });
+      },
+      
+      deleteSeriesComparison: (id) => {
+        set((state) => {
+          delete state.seriesComparisons[id];
+          if (state.activeSeriesComparisonId === id) {
+            state.activeSeriesComparisonId = null;
+          }
+        });
+      },
+      
+      setActiveSeriesComparison: (id) => {
+        set((state) => {
+          state.activeSeriesComparisonId = id;
+        });
+      },
+      
       // Utility actions
       getBottlesForLineup: (lineupId) => {
         const state = get();
@@ -501,7 +623,8 @@ export const useStore = create<Store>()(
       partialize: (state) => ({
         bottles: state.bottles,
         lineups: state.lineups,
-        comparisons: state.comparisons,
+        bottleSeries: state.bottleSeries,
+        seriesComparisons: state.seriesComparisons,
         settings: state.settings,
       }),
     }
@@ -519,5 +642,13 @@ export const useActiveLineup = () => useStore((state) =>
 );
 export const useUI = () => useStore((state) => state.ui);
 export const useSettings = () => useStore((state) => state.settings);
+export const useBottleSeries = () => useStore((state) => state.bottleSeries);
+export const useActiveSeries = () => useStore((state) =>
+  state.activeSeriesId ? state.bottleSeries[state.activeSeriesId] : null
+);
+export const useSeriesComparisons = () => useStore((state) => state.seriesComparisons);
+export const useActiveSeriesComparison = () => useStore((state) =>
+  state.activeSeriesComparisonId ? state.seriesComparisons[state.activeSeriesComparisonId] : null
+);
 
 export default useStore;

@@ -6,6 +6,7 @@
 export * from './bottle';
 export * from './lineup';
 export * from './preset';
+export * from './bottleSeries';
 
 // Common utility types
 export type ViewMode = '3d' | '2d';
