@@ -3,9 +3,6 @@
  * Renders a 3D shelf for bottle lineup display
  */
 
-import React from 'react';
-import * as THREE from 'three';
-
 interface Shelf3DProps {
   width: number;
   depth: number;

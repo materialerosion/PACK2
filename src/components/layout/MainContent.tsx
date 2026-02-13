@@ -4,15 +4,17 @@
  * bottle library, generated bottles display, and comparison views.
  */
 
-import React, { Suspense, useState, useCallback, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useCallback, useEffect, useRef } from 'react';
 import { useStore, useActiveSeries, useActiveSeriesComparison } from '@/store';
-import Scene3D from '../3d/Scene3D';
 import BottleLibrary from '../bottle-generator/BottleLibrary';
 import LineupShelf from '../lineup-builder/LineupShelf';
 import GeneratedBottlesDisplay from '../lineup-builder/GeneratedBottlesDisplay';
-import ComparisonChart from '../comparison-mode/ComparisonChart';
-import ComparisonTable from '../comparison-mode/ComparisonTable';
-import AnalysisReport from '../comparison-mode/AnalysisReport';
+
+// Lazy load heavy components for better initial load performance
+const Scene3D = lazy(() => import('../3d/Scene3D'));
+const ComparisonChart = lazy(() => import('../comparison-mode/ComparisonChart'));
+const ComparisonTable = lazy(() => import('../comparison-mode/ComparisonTable'));
+const AnalysisReport = lazy(() => import('../comparison-mode/AnalysisReport'));
 
 const MIN_PANEL_HEIGHT = 120;
 const MAX_PANEL_HEIGHT = 500;
@@ -74,23 +76,25 @@ export default function MainContent() {
       <div className="flex-1 relative min-h-0">
         {isComparisonView ? (
           /* Comparison view replaces 3D viewport */
-          <div className="w-full h-full overflow-auto p-6 space-y-6">
-            <ComparisonChart
-              series1={compSeries1}
-              series2={compSeries2}
-              comparison={activeComparison}
-            />
-            <ComparisonTable
-              series1={compSeries1}
-              series2={compSeries2}
-              comparison={activeComparison}
-            />
-            <AnalysisReport
-              series1={compSeries1}
-              series2={compSeries2}
-              comparison={activeComparison}
-            />
-          </div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <div className="w-full h-full overflow-auto p-6 space-y-6">
+              <ComparisonChart
+                series1={compSeries1}
+                series2={compSeries2}
+                comparison={activeComparison}
+              />
+              <ComparisonTable
+                series1={compSeries1}
+                series2={compSeries2}
+                comparison={activeComparison}
+              />
+              <AnalysisReport
+                series1={compSeries1}
+                series2={compSeries2}
+                comparison={activeComparison}
+              />
+            </div>
+          </Suspense>
         ) : (
           /* Normal 3D viewport */
           <>

@@ -87,7 +87,7 @@ export interface Bottle {
 }
 
 // Default bottle dimensions for different shapes
-export const DEFAULT_DIMENSIONS: Record<BottleShape, Partial<BottleDimensions>> = {
+export const DEFAULT_DIMENSIONS: Record<BottleShape, BottleDimensions> = {
   'boston-round': {
     height: 90,
     bodyHeight: 85,

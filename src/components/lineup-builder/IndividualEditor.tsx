@@ -4,7 +4,7 @@
  * Reuses patterns from BottleGenerator for consistency.
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore, useActiveSeries } from '@/store';
 import {
   BottleShape,

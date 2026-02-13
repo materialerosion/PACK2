@@ -4,8 +4,8 @@
  * Now includes per-series (intra-series) gap indicators alongside the combined (inter-series) gaps.
  */
 
-import React, { useMemo, useState } from 'react';
-import { BottleSeries, SeriesComparison, FillRange, CoverageGap, CoverageOverlap, IntraSeriesAnalysis } from '@/types/bottleSeries';
+import { useMemo, useState } from 'react';
+import { BottleSeries, SeriesComparison, FillRange, CoverageGap, CoverageOverlap } from '@/types/bottleSeries';
 import { FillRangeService } from '@/services/fillRangeService';
 
 interface ComparisonChartProps {

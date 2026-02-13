@@ -3,7 +3,7 @@
  * Control panel for bottle parameters and lineup settings
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '@/store';
 import { AnimatePresence, motion } from 'framer-motion';
 import BottleGenerator from '../bottle-generator/BottleGenerator';

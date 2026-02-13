@@ -4,7 +4,6 @@
  * Now includes per-series (intra-series) gap analysis and space efficiency metrics.
  */
 
-import React from 'react';
 import { useStore } from '@/store';
 import { BottleSeries, SeriesComparison, IntraSeriesAnalysis } from '@/types/bottleSeries';
 import { AlertTriangle, CheckCircle, Info, TrendingUp, BarChart3 } from 'lucide-react';
@@ -262,7 +261,6 @@ function SeriesEfficiencyCard({ analysis, color }: SeriesEfficiencyCardProps) {
   const borderColor = color === 'blue' ? 'border-blue-200' : 'border-green-200';
   const bgColor = color === 'blue' ? 'bg-blue-50' : 'bg-green-50';
   const textColor = color === 'blue' ? 'text-blue-700' : 'text-green-700';
-  const barColor = color === 'blue' ? 'bg-blue-500' : 'bg-green-500';
 
   const effHealth = analysis.coverageEfficiency >= 90 ? 'good' :
     analysis.coverageEfficiency >= 70 ? 'moderate' : 'poor';

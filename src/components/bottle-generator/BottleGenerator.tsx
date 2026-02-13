@@ -3,7 +3,7 @@
  * Main control panel for creating and editing bottles
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import { 
   BottleShape, 
@@ -14,14 +14,12 @@ import {
   MATERIAL_NAMES,
   DEFAULT_DIMENSIONS 
 } from '@/types';
-import { VolumeCalculator } from '@/services/volumeCalculator';
 import { Plus, Copy, Trash2, RotateCcw } from 'lucide-react';
 
 export default function BottleGenerator() {
   const { 
     bottles, 
     activeBottleId, 
-    addBottle, 
     updateBottle, 
     deleteBottle,
     duplicateBottle,
@@ -44,11 +42,11 @@ export default function BottleGenerator() {
   // Handle dimension change with debounce
   const handleDimensionChange = (key: string, value: number) => {
     const newDims = { ...localDims, [key]: value };
-    setLocalDims(newDims as typeof localDims);
+    setLocalDims(newDims);
     
     if (activeBottle) {
       updateBottle(activeBottle.id, { 
-        dimensions: newDims as typeof localDims 
+        dimensions: newDims 
       });
     }
   };
@@ -59,7 +57,7 @@ export default function BottleGenerator() {
       const newDims = { ...DEFAULT_DIMENSIONS[shape], ...localDims };
       updateBottle(activeBottle.id, { 
         shape,
-        dimensions: newDims as typeof localDims
+        dimensions: newDims
       });
     }
   };
@@ -74,8 +72,8 @@ export default function BottleGenerator() {
   const handleReset = () => {
     if (activeBottle) {
       const defaults = DEFAULT_DIMENSIONS[activeBottle.shape];
-      updateBottle(activeBottle.id, { dimensions: defaults as typeof localDims });
-      setLocalDims(defaults as typeof localDims);
+      updateBottle(activeBottle.id, { dimensions: defaults });
+      setLocalDims(defaults);
     }
   };
   

@@ -8,7 +8,6 @@ import { useStore } from '@/store';
 import { 
   Menu, 
   Settings, 
-  Download, 
   Sun, 
   Moon,
   Beaker,

@@ -3,7 +3,7 @@
  * Browse and apply preset templates for OTC categories
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '@/store';
 import { 
   OTCCategory, 
@@ -12,7 +12,6 @@ import {
   PresetTemplate 
 } from '@/types';
 import { presetTemplates } from '@/data/presets';
-import { Check, ChevronRight } from 'lucide-react';
 
 export default function PresetLibrary() {
   const { createBottleFromShape, createLineup, addBottleToLineup, setActiveLineup } = useStore();

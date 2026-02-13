@@ -108,6 +108,97 @@ npm run build
 npm run preview
 ```
 
+The production build outputs to the `dist/` directory.
+
+## Deployment
+
+PACK2 is a static single-page application (SPA) that can be deployed to any static hosting service. The build output in `dist/` contains all files needed for deployment.
+
+### Vercel (Recommended)
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
+Or connect your GitHub repository to [Vercel](https://vercel.com) for automatic deployments on push.
+
+### Netlify
+
+```bash
+# Install Netlify CLI
+npm i -g netlify-cli
+
+# Deploy
+netlify deploy --prod --dir=dist
+```
+
+Or drag and drop the `dist/` folder to [Netlify Drop](https://app.netlify.com/drop).
+
+### GitHub Pages
+
+1. Add `base` to `vite.config.ts` if deploying to a subpath:
+   ```ts
+   base: '/your-repo-name/',
+   ```
+2. Build and deploy:
+   ```bash
+   npm run build
+   npx gh-pages -d dist
+   ```
+
+### Docker
+
+```dockerfile
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### SPA Routing
+
+Since this is a single-page application, configure your hosting to redirect all routes to `index.html`. Example `nginx.conf`:
+
+```nginx
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static assets
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### Environment Variables
+
+No environment variables are required for deployment. The application runs entirely client-side.
+
+### Known Security Advisories
+
+- **xlsx**: Has known prototype pollution and ReDoS vulnerabilities with no fix available. The library is used only for Excel export functionality and processes user-generated data only.
+- **esbuild/vite**: Dev server vulnerability — does not affect production builds.
+- **dompurify/jspdf**: Moderate XSS vulnerability in PDF generation. A fix is available via `jspdf@4.x` (breaking change).
+
 ## Project Structure
 
 ```

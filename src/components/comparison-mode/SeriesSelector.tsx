@@ -3,7 +3,7 @@
  * Two dropdowns for selecting bottle series to compare.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '@/store';
 import { GENERATION_ALGORITHM_NAMES } from '@/types/bottleSeries';
 import { GitCompare } from 'lucide-react';

@@ -22,7 +22,7 @@ export const exportService = {
     bottles: Bottle[], 
     options: ExportOptions = {}
   ): Promise<Blob> {
-    const { includeSpecifications = true, includeVisual = true } = options;
+    const { includeSpecifications = true } = options;
     const doc = new jsPDF();
     
     // Header

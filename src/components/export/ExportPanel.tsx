@@ -3,7 +3,7 @@
  * Export lineup specifications as PDF, Excel, or images
  */
 
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useStore } from '@/store';
 import { ExportFormat } from '@/types';
 import { FileText, Table, Image, Download, Loader2 } from 'lucide-react';

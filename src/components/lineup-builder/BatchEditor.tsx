@@ -3,7 +3,7 @@
  * Allows editing common properties across multiple selected bottles in a series.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStore, useActiveSeries } from '@/store';
 import {
   CapStyle,

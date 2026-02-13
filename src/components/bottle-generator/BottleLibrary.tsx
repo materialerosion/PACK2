@@ -3,7 +3,6 @@
  * Displays all created bottles in a horizontal scrollable list
  */
 
-import React from 'react';
 import { useStore } from '@/store';
 import { Bottle } from '@/types';
 import { Plus } from 'lucide-react';

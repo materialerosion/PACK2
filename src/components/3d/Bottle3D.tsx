@@ -3,11 +3,11 @@
  * Renders a 3D bottle mesh based on bottle parameters
  */
 
-import React, { useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { Bottle, BottleShape } from '@/types';
+import { Bottle } from '@/types';
 import { useStore } from '@/store';
 
 interface Bottle3DProps {
@@ -124,7 +124,7 @@ export default function Bottle3D({
       )}
       
       {/* Label zones */}
-      {bottle.labelZones.map((zone, index) => (
+      {bottle.labelZones.map((zone) => (
         <mesh
           key={zone.id}
           position={[0, bodyOnlyHeight - zone.topOffset - zone.height / 2, 0]}

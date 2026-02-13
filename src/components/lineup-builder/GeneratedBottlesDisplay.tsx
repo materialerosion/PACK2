@@ -5,7 +5,7 @@
  * Includes per-series gap/overlap analysis and space utilization metrics.
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useStore, useActiveSeries } from '@/store';
 import { BottleSeries, FillRange, IntraSeriesAnalysis } from '@/types/bottleSeries';
 import { Bottle } from '@/types/bottle';

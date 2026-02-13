@@ -3,23 +3,19 @@
  * Controls for lineup builder - sorting, spacing, algorithms
  */
 
-import React from 'react';
 import { useStore } from '@/store';
 import { 
   SortAlgorithm, 
-  SortDirection,
   ALGORITHM_NAMES,
   ALGORITHM_DESCRIPTIONS,
-  DEFAULT_LINEUP_SETTINGS
 } from '@/types';
 import { LineupAlgorithms } from '@/services/lineupAlgorithms';
-import { Plus, ArrowUpDown, Trash2, Save } from 'lucide-react';
+import { Plus, ArrowUpDown, Trash2 } from 'lucide-react';
 
 export default function LineupControls() {
   const { 
     lineups, 
     activeLineupId, 
-    bottles,
     createLineup, 
     updateLineup,
     updateLineupSettings,

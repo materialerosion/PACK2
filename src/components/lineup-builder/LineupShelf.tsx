@@ -3,7 +3,6 @@
  * Drag and drop interface for arranging bottles on shelf
  */
 
-import React from 'react';
 import { useStore } from '@/store';
 import { 
   DndContext, 

@@ -3,7 +3,7 @@
  * PACK2 - Pharmaceutical Packaging Design Application
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useStore } from './store';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
@@ -11,7 +11,7 @@ import MainContent from './components/layout/MainContent';
 import { Toaster } from './components/ui/Toaster';
 
 function App() {
-  const { ui, settings } = useStore();
+  const { settings } = useStore();
   
   // Apply theme
   useEffect(() => {

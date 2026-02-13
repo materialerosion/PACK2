@@ -4,7 +4,6 @@
  * Now includes per-series (intra-series) gap/overlap rows alongside combined (inter-series) gaps.
  */
 
-import React from 'react';
 import { BottleSeries, SeriesComparison, FillRange, CoverageGap, IntraSeriesAnalysis } from '@/types/bottleSeries';
 import { FillRangeService } from '@/services/fillRangeService';
 
