@@ -16,7 +16,7 @@ import {
   MATERIAL_NAMES,
 } from '@/types/bottle';
 import { FillRangeService } from '@/services/fillRangeService';
-// lucide-react icons available for future use
+import { Droplets } from 'lucide-react';
 
 interface IndividualEditorProps {
   bottleIndex: number;
@@ -26,6 +26,7 @@ export default function IndividualEditor({ bottleIndex }: IndividualEditorProps)
   const {
     activeSeriesId,
     updateBottleInSeries,
+    sendBottleToFill,
   } = useStore();
 
   const activeSeries = useActiveSeries();
@@ -228,6 +229,15 @@ export default function IndividualEditor({ bottleIndex }: IndividualEditorProps)
           </div>
         </div>
       </div>
+
+      {/* Send to Fill Simulator */}
+      <button
+        onClick={() => sendBottleToFill(bottle)}
+        className="btn btn-secondary w-full flex items-center justify-center gap-2"
+      >
+        <Droplets className="w-4 h-4" />
+        Send to Fill Simulator
+      </button>
     </div>
   );
 }

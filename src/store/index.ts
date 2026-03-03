@@ -24,10 +24,47 @@ import {
   BottleSeries,
   SeriesComparison,
   GenerationConfig,
+  Product,
 } from '@/types';
 import { VolumeCalculator } from '@/services/volumeCalculator';
 import { BottleGenerationService } from '@/services/bottleGenerationService';
 import { ComparisonService } from '@/services/comparisonService';
+
+// ─── Fill Simulation Types ────────────────────────────────────────────
+
+export type FillSimStatus = 'idle' | 'configuring' | 'running' | 'settling' | 'redropping' | 'complete';
+
+export interface ProductBodyState {
+  id: string;
+  position: [number, number, number];
+  rotation: [number, number, number, number]; // quaternion
+  isInside: boolean;
+}
+
+export interface FillSimulationResult {
+  targetQuantity: number;
+  actualQuantity: number;
+  overflow: number;
+  fillEfficiency: number;     // actual product volume / bottle internal volume
+  bottleVolume: number;
+  productVolume: number;
+  totalProductVolume: number;
+  simulationTime: number;     // seconds
+  productPositions: ProductBodyState[];
+}
+
+export interface FillSimulationState {
+  fillBottle: Bottle | null;
+  fillProduct: Product | null;
+  targetQuantity: number;
+  status: FillSimStatus;
+  droppedCount: number;
+  insideCount: number;
+  elapsedTime: number;
+  currentPass: number;
+  results: FillSimulationResult | null;
+  productBodies: ProductBodyState[];
+}
 
 // Store state interface
 interface AppState {
@@ -46,6 +83,9 @@ interface AppState {
   // Series Comparisons (new)
   seriesComparisons: Record<string, SeriesComparison>;
   activeSeriesComparisonId: string | null;
+  
+  // Fill Simulation
+  fillSimulation: FillSimulationState;
   
   // UI State
   ui: UIState;
@@ -103,6 +143,16 @@ interface AppActions {
   deleteSeriesComparison: (id: string) => void;
   setActiveSeriesComparison: (id: string | null) => void;
   
+  // Fill Simulation actions
+  sendBottleToFill: (bottle: Bottle) => void;
+  setFillProduct: (product: Product) => void;
+  setTargetQuantity: (qty: number) => void;
+  startFillSimulation: () => void;
+  pauseFillSimulation: () => void;
+  resetFillSimulation: () => void;
+  updateFillSimProgress: (updates: Partial<FillSimulationState>) => void;
+  setFillSimResults: (results: FillSimulationResult) => void;
+  
   // Utility actions
   getBottlesForLineup: (lineupId: string) => Bottle[];
   recalculateBottleVolume: (id: string) => void;
@@ -121,6 +171,18 @@ const initialState: AppState = {
   activeSeriesId: null,
   seriesComparisons: {},
   activeSeriesComparisonId: null,
+  fillSimulation: {
+    fillBottle: null,
+    fillProduct: null,
+    targetQuantity: 50,
+    status: 'idle',
+    droppedCount: 0,
+    insideCount: 0,
+    elapsedTime: 0,
+    currentPass: 0,
+    results: null,
+    productBodies: [],
+  },
   ui: {
     sidebarOpen: true,
     activeTab: 'generator',
@@ -596,6 +658,79 @@ export const useStore = create<Store>()(
         });
       },
       
+      // Fill Simulation actions
+      sendBottleToFill: (bottle) => {
+        set((state) => {
+          // Deep copy the bottle
+          state.fillSimulation.fillBottle = JSON.parse(JSON.stringify(bottle));
+          state.fillSimulation.status = 'configuring';
+          state.fillSimulation.droppedCount = 0;
+          state.fillSimulation.insideCount = 0;
+          state.fillSimulation.elapsedTime = 0;
+          state.fillSimulation.currentPass = 0;
+          state.fillSimulation.results = null;
+          state.fillSimulation.productBodies = [];
+          state.ui.activeTab = 'fill';
+        });
+      },
+      
+      setFillProduct: (product) => {
+        set((state) => {
+          state.fillSimulation.fillProduct = JSON.parse(JSON.stringify(product));
+        });
+      },
+      
+      setTargetQuantity: (qty) => {
+        set((state) => {
+          state.fillSimulation.targetQuantity = Math.max(1, Math.min(500, qty));
+        });
+      },
+      
+      startFillSimulation: () => {
+        set((state) => {
+          state.fillSimulation.status = 'running';
+          state.fillSimulation.droppedCount = 0;
+          state.fillSimulation.insideCount = 0;
+          state.fillSimulation.elapsedTime = 0;
+          state.fillSimulation.currentPass = 0;
+          state.fillSimulation.results = null;
+          state.fillSimulation.productBodies = [];
+        });
+      },
+      
+      pauseFillSimulation: () => {
+        set((state) => {
+          if (state.fillSimulation.status === 'running') {
+            state.fillSimulation.status = 'configuring';
+          }
+        });
+      },
+      
+      resetFillSimulation: () => {
+        set((state) => {
+          state.fillSimulation.status = state.fillSimulation.fillBottle ? 'configuring' : 'idle';
+          state.fillSimulation.droppedCount = 0;
+          state.fillSimulation.insideCount = 0;
+          state.fillSimulation.elapsedTime = 0;
+          state.fillSimulation.currentPass = 0;
+          state.fillSimulation.results = null;
+          state.fillSimulation.productBodies = [];
+        });
+      },
+      
+      updateFillSimProgress: (updates) => {
+        set((state) => {
+          Object.assign(state.fillSimulation, updates);
+        });
+      },
+      
+      setFillSimResults: (results) => {
+        set((state) => {
+          state.fillSimulation.results = results;
+          state.fillSimulation.status = 'complete';
+        });
+      },
+      
       // Utility actions
       getBottlesForLineup: (lineupId) => {
         const state = get();
@@ -650,5 +785,6 @@ export const useSeriesComparisons = () => useStore((state) => state.seriesCompar
 export const useActiveSeriesComparison = () => useStore((state) =>
   state.activeSeriesComparisonId ? state.seriesComparisons[state.activeSeriesComparisonId] : null
 );
+export const useFillSimulation = () => useStore((state) => state.fillSimulation);
 
 export default useStore;

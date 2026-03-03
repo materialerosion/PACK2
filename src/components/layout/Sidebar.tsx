@@ -13,6 +13,7 @@ import IndividualEditor from '../lineup-builder/IndividualEditor';
 import SeriesSelector from '../comparison-mode/SeriesSelector';
 import PresetLibrary from '../presets/PresetLibrary';
 import ExportPanel from '../export/ExportPanel';
+import FillSimulatorControls from '../fill-simulator/FillSimulatorControls';
 
 type LineupSubTab = 'generate' | 'batch' | 'individual';
 
@@ -73,6 +74,8 @@ export default function Sidebar() {
         return <PresetLibrary />;
       case 'export':
         return <ExportPanel />;
+      case 'fill':
+        return <FillSimulatorControls />;
       default:
         return <BottleGenerator />;
     }

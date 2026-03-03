@@ -5,10 +5,10 @@
 
 import { useStore } from '@/store';
 import { Bottle } from '@/types';
-import { Plus } from 'lucide-react';
+import { Plus, Droplets } from 'lucide-react';
 
 export default function BottleLibrary() {
-  const { bottles, activeBottleId, setActiveBottle, createBottleFromShape } = useStore();
+  const { bottles, activeBottleId, setActiveBottle, createBottleFromShape, sendBottleToFill } = useStore();
   
   const bottleList = Object.values(bottles);
   
@@ -38,6 +38,7 @@ export default function BottleLibrary() {
                 bottle={bottle}
                 isSelected={bottle.id === activeBottleId}
                 onClick={() => setActiveBottle(bottle.id)}
+                onSendToFill={() => sendBottleToFill(bottle)}
               />
             ))
           )}
@@ -51,14 +52,15 @@ interface BottleCardProps {
   bottle: Bottle;
   isSelected: boolean;
   onClick: () => void;
+  onSendToFill: () => void;
 }
 
-function BottleCard({ bottle, isSelected, onClick }: BottleCardProps) {
+function BottleCard({ bottle, isSelected, onClick, onSendToFill }: BottleCardProps) {
   return (
     <button
       onClick={onClick}
       className={`
-        flex-shrink-0 w-24 h-full rounded-lg border-2 p-2
+        flex-shrink-0 w-24 h-full rounded-lg border-2 p-2 relative
         flex flex-col items-center justify-center gap-1
         transition-all duration-200 hover:shadow-md
         ${isSelected 
@@ -67,6 +69,17 @@ function BottleCard({ bottle, isSelected, onClick }: BottleCardProps) {
         }
       `}
     >
+      {/* Send to Fill button (visible on selected) */}
+      {isSelected && (
+        <span
+          onClick={(e) => { e.stopPropagation(); onSendToFill(); }}
+          className="absolute top-1 right-1 p-1 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer z-10"
+          title="Send to Fill Simulator"
+        >
+          <Droplets className="w-3 h-3" />
+        </span>
+      )}
+      
       {/* Mini bottle visualization */}
       <div 
         className="w-8 h-16 rounded-t-lg relative"

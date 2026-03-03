@@ -14,7 +14,8 @@ import {
   LayoutGrid,
   GitCompare,
   Library,
-  FileDown
+  FileDown,
+  Droplets
 } from 'lucide-react';
 import { AppTab } from '@/types';
 
@@ -24,6 +25,7 @@ const tabs: { id: AppTab; label: string; icon: React.ReactNode }[] = [
   { id: 'comparison', label: 'Compare', icon: <GitCompare className="w-4 h-4" /> },
   { id: 'presets', label: 'Presets', icon: <Library className="w-4 h-4" /> },
   { id: 'export', label: 'Export', icon: <FileDown className="w-4 h-4" /> },
+  { id: 'fill', label: 'Fill Simulator', icon: <Droplets className="w-4 h-4" /> },
 ];
 
 export default function Header() {

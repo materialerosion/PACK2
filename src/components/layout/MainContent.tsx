@@ -12,6 +12,7 @@ import GeneratedBottlesDisplay from '../lineup-builder/GeneratedBottlesDisplay';
 
 // Lazy load heavy components for better initial load performance
 const Scene3D = lazy(() => import('../3d/Scene3D'));
+const FillScene3D = lazy(() => import('../fill-simulator/FillScene3D'));
 const ComparisonChart = lazy(() => import('../comparison-mode/ComparisonChart'));
 const ComparisonTable = lazy(() => import('../comparison-mode/ComparisonTable'));
 const AnalysisReport = lazy(() => import('../comparison-mode/AnalysisReport'));
@@ -69,6 +70,7 @@ export default function MainContent() {
   const compSeries2 = activeComparison ? bottleSeries[activeComparison.series2Id] : null;
 
   const isComparisonView = ui.activeTab === 'comparison' && activeComparison && compSeries1 && compSeries2;
+  const isFillView = ui.activeTab === 'fill';
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden bg-gray-100">
@@ -95,6 +97,11 @@ export default function MainContent() {
               />
             </div>
           </Suspense>
+        ) : isFillView ? (
+          /* Fill Simulator 3D viewport */
+          <Suspense fallback={<LoadingSpinner />}>
+            <FillScene3D />
+          </Suspense>
         ) : (
           /* Normal 3D viewport */
           <>
@@ -118,7 +125,7 @@ export default function MainContent() {
       </div>
 
       {/* Bottom panel - context-dependent, resizable */}
-      {!isComparisonView && (
+      {!isComparisonView && !isFillView && (
         <div className="flex flex-col flex-shrink-0" style={{ height: `${panelHeight}px` }}>
           {/* Resize handle */}
           <div

@@ -7,6 +7,7 @@ export * from './bottle';
 export * from './lineup';
 export * from './preset';
 export * from './bottleSeries';
+export * from './product';
 
 // Common utility types
 export type ViewMode = '3d' | '2d';
@@ -14,7 +15,7 @@ export type Theme = 'light' | 'dark';
 export type Units = 'metric' | 'imperial';
 
 // Tab types
-export type AppTab = 'generator' | 'lineup' | 'comparison' | 'presets' | 'export';
+export type AppTab = 'generator' | 'lineup' | 'comparison' | 'presets' | 'export' | 'fill';
 
 // UI State types
 export interface UIState {

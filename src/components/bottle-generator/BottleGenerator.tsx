@@ -14,7 +14,7 @@ import {
   MATERIAL_NAMES,
   DEFAULT_DIMENSIONS 
 } from '@/types';
-import { Plus, Copy, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Copy, Trash2, RotateCcw, Droplets } from 'lucide-react';
 
 export default function BottleGenerator() {
   const { 
@@ -24,7 +24,8 @@ export default function BottleGenerator() {
     deleteBottle,
     duplicateBottle,
     setActiveBottle,
-    createBottleFromShape
+    createBottleFromShape,
+    sendBottleToFill
   } = useStore();
   
   const activeBottle = activeBottleId ? bottles[activeBottleId] : null;
@@ -276,6 +277,14 @@ export default function BottleGenerator() {
             >
               <Copy className="w-4 h-4" />
               Duplicate
+            </button>
+            <button
+              onClick={() => sendBottleToFill(activeBottle)}
+              className="btn btn-secondary flex items-center justify-center gap-2"
+              title="Simulate filling this bottle"
+            >
+              <Droplets className="w-4 h-4" />
+              Fill Sim
             </button>
             <button
               onClick={handleReset}
