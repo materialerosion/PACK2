@@ -64,3 +64,4 @@ coverage/
 .stylelintcache
 *.pem
 .cache/
+plans/fill-simulator-plan.md
